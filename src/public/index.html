@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube to MP3 Converter</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #e62117;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #e62117;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 0 4px 4px 0;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #c81d11;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .status.info {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+            display: block;
+        }
+        .status.success {
+            background-color: #e8f5e9;
+            color: #1b5e20;
+            display: block;
+        }
+        .status.error {
+            background-color: #ffebee;
+            color: #b71c1c;
+            display: block;
+        }
+        .download-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            text-decoration: none;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .download-link:hover {
+            background-color: #388E3C;
+        }
+        .hidden {
+            display: none;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #e62117;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube to MP3 Converter</h1>
+        
+        <div class="input-group">
+            <input type="text" id="youtube-url" placeholder="Paste YouTube URL here..." required>
+            <button id="convert-btn">Convert</button>
+        </div>
+        
+        <div id="status-message" class="status"></div>
+        <div id="loader" class="loader"></div>
+        
+        <a id="download-link" class="download-link hidden" href="#" download>Download MP3</a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const convertBtn = document.getElementById('convert-btn');
+            const youtubeUrlInput = document.getElementById('youtube-url');
+            const statusMessage = document.getElementById('status-message');
+            const downloadLink = document.getElementById('download-link');
+            const loader = document.getElementById('loader');
+
+            convertBtn.addEventListener('click', async () => {
+                const youtubeUrl = youtubeUrlInput.value.trim();
+                
+                if (!youtubeUrl) {
+                    showStatus('Please enter a YouTube URL', 'error');
+                    return;
+                }
+
+                if (!isValidYouTubeUrl(youtubeUrl)) {
+                    showStatus('Please enter a valid YouTube URL', 'error');
+                    return;
+                }
+
+                showStatus('Converting video to MP3. This may take a moment...', 'info');
+                downloadLink.classList.add('hidden');
+                loader.style.display = 'block';
+                
+                try {
+                    const response = await fetch('/convert', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ url: youtubeUrl })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to convert video');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    showStatus('Conversion successful!', 'success');
+                    downloadLink.href = data.downloadUrl;
+                    downloadLink.classList.remove('hidden');
+                } catch (error) {
+                    showStatus(`Error: ${error.message}`, 'error');
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+
+            function showStatus(message, type) {
+                statusMessage.textContent = message;
+                statusMessage.className = 'status';
+                statusMessage.classList.add(type);
+            }
+
+            function isValidYouTubeUrl(url) {
+                const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11}/;
+                return youtubeRegex.test(url);
+            }
+        });
+    </script>
+</body>
+</html>
